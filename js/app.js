@@ -18,10 +18,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       tg.expand();
     }
   } catch(e) {}
+
+  // Safety timeout — if init hangs more than 15s, show error
+  const safetyTimer = setTimeout(() => {
+    document.getElementById('auth-error-text').textContent = 'Сервер не отвечает. Попробуйте позже.';
+    navigateTo('unauthorized');
+  }, 15000);
+
   await init();
+  clearTimeout(safetyTimer);
 });
 
 async function init() {
+  const errText = document.getElementById('auth-error-text');
   try {
     const roleData = await api.getRole();
     state.role = roleData.role;
@@ -39,16 +48,18 @@ async function init() {
       renderCoachGroups();
     } else if (state.role === 'parent') {
       await initParentDashboard();
+    } else {
+      if (errText) errText.textContent = 'Неизвестная роль: ' + state.role;
+      navigateTo('unauthorized');
     }
   } catch (err) {
-    const errText = document.getElementById('auth-error-text');
     if (err.message.includes('Unauthorized') || err.message.includes('403')) {
       navigateTo('unauthorized');
     } else if (err.message.includes('No Telegram user')) {
       if (errText) errText.textContent = 'Откройте приложение через Telegram бота.';
       navigateTo('unauthorized');
     } else {
-      if (errText) errText.textContent = err.message;
+      if (errText) errText.textContent = 'Ошибка: ' + err.message;
       navigateTo('unauthorized');
     }
   }
