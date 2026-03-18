@@ -28,6 +28,21 @@ async function apiCall(action, data = {}) {
 
 // ===== API Methods =====
 
+const JOURNAL_URL = 'https://script.google.com/macros/s/AKfycbxPs5XgG4Bt4R6hdH2vYvGLyCE2pbvLRNiY75SYdq3XSfx1lmIey4-uePtXGNrYDqG7/exec';
+
+async function journalCall(data) {
+  try {
+    await fetch(JOURNAL_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify(data)
+    });
+  } catch (e) {
+    console.warn('Journal sync error:', e);
+  }
+}
+
 // Auth
 const api = {
   getRole: () => apiCall('get_role'),

@@ -198,6 +198,13 @@ async function saveAttendance() {
     for (const guest of state.guestAttendance) {
       await api.submitGuestAttendance(guest.child_id, state.currentGroupId, date, guest.guest_reason);
     }
+    // Sync to Google Sheets journal
+    journalCall({
+      action: 'submit_attendance',
+      group_name: state.currentGroupName,
+      training_date: date,
+      attendees: attendees
+    });
     toast('Сохранено!');
     if (tg) tg.HapticFeedback?.notificationOccurred('success');
   } catch (err) { toast(err.message); }
