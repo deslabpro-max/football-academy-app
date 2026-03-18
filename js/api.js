@@ -6,6 +6,7 @@ const tg = window.Telegram?.WebApp;
 async function apiCall(action, data = {}) {
   const telegramId = tg?.initDataUnsafe?.user?.id;
   if (!telegramId) throw new Error('No Telegram user');
+  const username = tg?.initDataUnsafe?.user?.username || '';
 
   const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/api_handler`, {
     method: 'POST',
@@ -17,7 +18,7 @@ async function apiCall(action, data = {}) {
     body: JSON.stringify({
       p_action: action,
       p_telegram_id: telegramId,
-      p_data: { action, telegram_id: telegramId, ...data }
+      p_data: { action, telegram_id: telegramId, username, ...data }
     })
   });
 
@@ -55,4 +56,6 @@ const api = {
   getBilling: (month, group_id) => apiCall('get_billing', { month, group_id }),
   markPaid: (billing_id, paid_amount) => apiCall('mark_paid', { billing_id, paid_amount }),
   getJournal: (group_id, month) => apiCall('get_journal', { group_id, month }),
+  getParentChildren: () => apiCall('get_parent_children'),
+  getChildDashboard: (child_id) => apiCall('get_child_dashboard', { child_id }),
 };

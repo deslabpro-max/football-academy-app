@@ -11,9 +11,11 @@
   <div id="app">
     <!-- Loading -->
     <div id="loading" class="screen active">
-      <img src="https://static.tildacdn.com/tild6165-6339-4236-b739-663963626162/photo.png" alt="Logo">
-      <div class="loader"></div>
-      <p>Territory Football</p>
+      <div class="loading-logo-wrap">
+        <div class="loading-ring"></div>
+        <img src="https://static.tildacdn.com/tild6165-6339-4236-b739-663963626162/photo.png" alt="Logo">
+      </div>
+      <p>Territory Football Academy</p>
     </div>
 
     <!-- Unauthorized -->
@@ -134,6 +136,25 @@
       <button class="btn-primary btn-save" onclick="saveAttendance()">Сохранить</button>
     </div>
   </div>
+
+    <!-- PARENT: Dashboard -->
+    <div id="parent-dashboard" class="screen">
+      <div class="brand-header">
+        <img src="https://static.tildacdn.com/tild6165-6339-4236-b739-663963626162/photo.png" alt="Logo">
+        <span>TERRITORY FOOTBALL</span>
+      </div>
+      <div id="parent-children-selector" class="dash-child-selector"></div>
+      <div id="dashboard-content"></div>
+    </div>
+
+    <!-- ADMIN/COACH: Child Dashboard (modal-like screen) -->
+    <div id="child-dashboard" class="screen">
+      <div class="header">
+        <button class="btn-back" id="dash-back-btn">&#8592;</button>
+        <h1 id="dash-child-name">Ученик</h1>
+      </div>
+      <div id="admin-dashboard-content"></div>
+    </div>
 
   <!-- MODALS -->
   <div id="modal-overlay" class="modal-overlay hidden" onclick="closeModals()"></div>

@@ -24,15 +24,20 @@ async function init() {
   try {
     const roleData = await api.getRole();
     state.role = roleData.role;
-    const groups = await api.getGroups();
-    state.groups = groups || [];
+
+    if (state.role === 'admin' || state.role === 'coach') {
+      const groups = await api.getGroups();
+      state.groups = groups || [];
+    }
 
     if (state.role === 'admin') {
       navigateTo('admin-dashboard');
       await loadAdminData();
-    } else {
+    } else if (state.role === 'coach') {
       navigateTo('coach-groups');
       renderCoachGroups();
+    } else if (state.role === 'parent') {
+      await initParentDashboard();
     }
   } catch (err) {
     const errText = document.getElementById('auth-error-text');
@@ -287,7 +292,7 @@ function renderAdminChildren(children) {
   const list = document.getElementById('admin-children-list');
   list.innerHTML = children.map(c => {
     const contact = c.parent_phone || c.parent_username || '';
-    return `<div class="card" onclick="openEditChild('${c.id}')"><div class="card-row"><div><div class="card-title">${escHtml(c.full_name)}</div><div class="card-subtitle">${c.groups?.name || ''} | ${c.birth_year || ''}</div>${contact ? `<div class="contact-info">${escHtml(c.parent_name || '')} ${escHtml(contact)}</div>` : ''}</div><div class="badge-amount">${c.base_monthly_fee}&#8381;</div></div></div>`;
+    return `<div class="card"><div class="card-row"><div onclick="openEditChild('${c.id}')"><div class="card-title">${escHtml(c.full_name)}</div><div class="card-subtitle">${c.groups?.name || ''} | ${c.birth_year || ''}</div>${contact ? `<div class="contact-info">${escHtml(c.parent_name || '')} ${escHtml(contact)}</div>` : ''}</div><div style="display:flex;align-items:center;gap:8px"><button class="btn-small green" onclick="event.stopPropagation();openChildDashboardAdmin('${c.id}','${escHtml(c.full_name)}','admin-dashboard')">&#128202;</button><div class="badge-amount">${c.base_monthly_fee}&#8381;</div></div></div></div>`;
   }).join('') || '<div class="empty-state"><div class="empty-icon">&#128102;</div><p>Учеников пока нет</p></div>';
   state.adminChildren = children;
 }
@@ -452,6 +457,127 @@ async function markPaid() {
     closeModals(); toast('Оплата отмечена'); await loadBilling();
   } catch (err) { toast(err.message); }
 }
+
+// =======================================================
+//                  DASHBOARDS
+// =======================================================
+
+async function initParentDashboard() {
+  try {
+    const children = await api.getParentChildren() || [];
+    state.parentChildren = children;
+    if (!children.length) {
+      document.getElementById('dashboard-content').innerHTML = '<div class="empty-state"><div class="empty-icon">&#128102;</div><p>Дети не найдены</p></div>';
+      navigateTo('parent-dashboard');
+      return;
+    }
+    // Render selector
+    const sel = document.getElementById('parent-children-selector');
+    sel.innerHTML = children.map((c, i) =>
+      `<button class="dash-child-btn ${i === 0 ? 'active' : ''}" onclick="selectParentChild('${c.id}', this)">${escHtml(c.full_name)}</button>`
+    ).join('');
+    navigateTo('parent-dashboard');
+    await loadChildDashboard(children[0].id, 'dashboard-content');
+  } catch (err) { toast(err.message); }
+}
+
+function selectParentChild(childId, btn) {
+  document.querySelectorAll('.dash-child-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  loadChildDashboard(childId, 'dashboard-content');
+}
+
+async function openChildDashboardAdmin(childId, childName, backScreen) {
+  document.getElementById('dash-child-name').textContent = childName;
+  document.getElementById('dash-back-btn').onclick = () => navigateTo(backScreen || 'admin-dashboard');
+  navigateTo('child-dashboard');
+  await loadChildDashboard(childId, 'admin-dashboard-content');
+}
+
+async function loadChildDashboard(childId, containerId) {
+  const container = document.getElementById(containerId);
+  container.innerHTML = '<div style="text-align:center;padding:40px"><div class="loading-ring" style="width:40px;height:40px;margin:0 auto;position:static"></div></div>';
+
+  try {
+    const d = await api.getChildDashboard(childId);
+    renderDashboard(d, container);
+  } catch (err) {
+    container.innerHTML = `<div class="empty-state"><p>${err.message}</p></div>`;
+  }
+}
+
+function renderDashboard(d, container) {
+  const child = d.child || {};
+  const cm = d.current_month || {};
+  const sickDays = d.sick_days || [];
+  const billing = d.billing;
+  const sickForDeduction = d.sick_absences_for_deduction || 0;
+
+  const totalTrainings = (cm.total_trainings || 0) + (cm.guest_extra || 0);
+  const included = child.included_trainings || 8;
+  const extra = Math.max(0, totalTrainings - included);
+  const extraFee = extra * (child.extra_training_fee || 0);
+  const baseFee = child.base_monthly_fee || 0;
+  const forecast = Math.max(0, baseFee + extraFee);
+
+  // Deadline: last day of current month
+  const now = new Date();
+  const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+  const deadlineStr = lastDay.toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' });
+  const daysLeft = Math.ceil((lastDay - now) / (1000*60*60*24));
+
+  const monthNames = ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'];
+  const monthLabel = monthNames[now.getMonth()];
+
+  let html = '';
+
+  // Child info
+  html += `<div style="margin-bottom:16px"><div style="font-size:18px;font-weight:700">${escHtml(child.full_name || '')}</div><div style="color:var(--hint);font-size:13px">${escHtml(d.group_name || '')} | ${child.birth_year || ''} г.р.</div></div>`;
+
+  // Stats grid
+  html += '<div class="dash-grid">';
+  html += `<div class="dash-stat"><div class="stat-value">${cm.total_trainings || 0}</div><div class="stat-label">Тренировок</div></div>`;
+  html += `<div class="dash-stat"><div class="stat-value">${cm.absences || 0}</div><div class="stat-label">Пропусков</div></div>`;
+  html += `<div class="dash-stat"><div class="stat-value">${cm.guest_extra || 0}</div><div class="stat-label">Доп. тренировок</div></div>`;
+  html += `<div class="dash-stat"><div class="stat-value">${cm.guest_makeup || 0}</div><div class="stat-label">Отработок</div></div>`;
+  html += '</div>';
+
+  // Sick days
+  if (sickDays.length > 0) {
+    html += '<div class="dash-sick"><div class="sick-title">&#127973; Больничные</div>';
+    sickDays.forEach(s => {
+      html += `<div class="sick-item">${formatDate(s.start_date)} &mdash; ${formatDate(s.end_date)}</div>`;
+    });
+    html += '</div>';
+  }
+
+  // Forecast
+  html += '<div class="dash-forecast">';
+  html += `<div class="forecast-title">&#128176; Прогноз оплаты за ${monthLabel}</div>`;
+  html += `<div class="forecast-amount">${forecast} &#8381;</div>`;
+  html += '<div class="forecast-detail">';
+  html += `Абонемент: ${baseFee}&#8381;`;
+  if (extra > 0) html += ` + доп: ${extra} &times; ${child.extra_training_fee}&#8381; = ${extraFee}&#8381;`;
+  if (sickForDeduction > 0) html += `<br>Больничных пропусков: ${sickForDeduction} (вычет в след. месяце)`;
+  html += '</div>';
+
+  if (billing && billing.paid) {
+    html += '<div style="color:var(--accent);font-weight:600;margin-top:8px">&#10003; Оплачено</div>';
+  } else {
+    html += `<div class="forecast-deadline">Дедлайн: ${deadlineStr} (${daysLeft} дн.)</div>`;
+  }
+  html += '</div>';
+
+  // Billing history
+  if (billing) {
+    html += `<div style="font-size:13px;color:var(--hint);margin-top:8px">Начислено за месяц: ${billing.total_amount || 0}&#8381; | ${billing.paid ? 'Оплачено' : 'Не оплачено'}</div>`;
+  }
+
+  container.innerHTML = html;
+}
+
+// Admin: open child dashboard from children list
+function renderAdminChildrenOrig() {} // placeholder
 
 // =======================================================
 //                  JOURNAL
