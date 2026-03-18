@@ -475,32 +475,83 @@ async function deleteSickDay(id) {
   catch (err) { toast(err.message); }
 }
 
-// ----- Billing -----
+// ----- Billing / Payment -----
 async function loadBilling() {
   const monthInput = document.getElementById('filter-month').value;
-  const groupId = document.getElementById('filter-billing-group').value;
   if (!monthInput) return;
-  const month = monthInput + '-01';
   try {
-    const bills = await api.getBilling(month, groupId || undefined) || [];
-    renderBilling(bills);
+    const data = await api.getPaymentOverview(monthInput);
+    renderPaymentOverview(data || [], monthInput);
   } catch (err) { toast(err.message); }
 }
 
-function renderBilling(bills) {
-  const total = bills.reduce((s, b) => s + (b.total_amount || 0), 0);
-  const paid = bills.filter(b => b.paid).reduce((s, b) => s + (b.total_amount || 0), 0);
+function renderPaymentOverview(items, monthInput) {
+  const groupId = document.getElementById('filter-billing-group').value;
+  let filtered = items;
+  if (groupId) filtered = items.filter(i => i.group_name && i.child_id);
+
+  // Calculate forecasts
+  filtered = filtered.map(item => {
+    const trainings = (item.trainings || 0) + (item.guest_extra || 0);
+    const extra = Math.max(0, trainings - (item.included_trainings || 8));
+    const extraFee = extra * (item.extra_training_fee || 0);
+    const sickDeduct = (item.prev_sick_absences || 0) * (item.extra_training_fee || 0);
+    const forecast = Math.max(0, (item.base_monthly_fee || 0) + extraFee - sickDeduct);
+    return { ...item, forecast, extra, extraFee, sickDeduct, trainings };
+  });
+
+  const totalForecast = filtered.reduce((s, i) => s + i.forecast, 0);
+  const totalPaid = filtered.filter(i => i.paid).reduce((s, i) => s + (i.billed_amount || i.forecast), 0);
+  const totalDebt = totalForecast - totalPaid;
+
   document.getElementById('billing-summary').innerHTML = `
-    <div class="summary-item"><div class="label">Всего</div><div class="value">${total}&#8381;</div></div>
-    <div class="summary-item"><div class="label">Оплачено</div><div class="value" style="color:#008637">${paid}&#8381;</div></div>
-    <div class="summary-item"><div class="label">Долг</div><div class="value" style="color:#d32f2f">${total - paid}&#8381;</div></div>
+    <div class="summary-item"><div class="label">Прогноз</div><div class="value">${totalForecast}&#8381;</div></div>
+    <div class="summary-item"><div class="label">Оплачено</div><div class="value" style="color:#008637">${totalPaid}&#8381;</div></div>
+    <div class="summary-item"><div class="label">Долг</div><div class="value" style="color:#d32f2f">${Math.max(0, totalDebt)}&#8381;</div></div>
   `;
+
   const list = document.getElementById('admin-billing-list');
-  list.innerHTML = bills.map(b => {
-    const child = b.children || {};
-    return `<div class="card" onclick="openBillingDetail('${b.id}')"><div class="card-row"><div><div class="card-title">${escHtml(child.full_name || '?')}</div><div class="card-subtitle">${child.groups?.name || ''}</div></div><div style="text-align:right"><div class="badge-amount">${b.total_amount}&#8381;</div><span class="card-badge ${b.paid ? 'badge-paid' : 'badge-unpaid'}">${b.paid ? 'Оплачено' : 'Не оплачено'}</span></div></div></div>`;
-  }).join('') || '<div class="empty-state"><div class="empty-icon">&#128176;</div><p>Нет записей за этот месяц</p></div>';
-  state.billingData = bills;
+  list.innerHTML = filtered.map(item => {
+    const isPaid = item.paid;
+    return `<div class="card" onclick="openPaymentDetail(${JSON.stringify(item).replace(/"/g, '&quot;')})">
+      <div class="card-row">
+        <div>
+          <div class="card-title">${escHtml(item.full_name)}</div>
+          <div class="card-subtitle">${escHtml(item.group_name || '')} | ${item.trainings} трен.</div>
+        </div>
+        <div style="text-align:right">
+          <div class="badge-amount">${item.forecast}&#8381;</div>
+          <span class="card-badge ${isPaid ? 'badge-paid' : 'badge-unpaid'}">${isPaid ? 'Оплачено' : 'К оплате'}</span>
+        </div>
+      </div>
+    </div>`;
+  }).join('') || '<div class="empty-state"><div class="empty-icon">&#128176;</div><p>Нет учеников</p></div>';
+
+  state.paymentData = filtered;
+}
+
+function openPaymentDetail(item) {
+  if (typeof item === 'string') item = JSON.parse(item);
+  document.getElementById('billing-detail-name').textContent = item.full_name;
+
+  let html = '<table class="detail-table">';
+  html += `<tr><td>Абонемент</td><td>${item.base_monthly_fee}&#8381;</td></tr>`;
+  html += `<tr><td>Тренировок</td><td>${item.trainings}</td></tr>`;
+  html += `<tr><td>В абонемент</td><td>${item.included_trainings}</td></tr>`;
+  if (item.extra > 0) html += `<tr><td>Доп. (${item.extra} &times; ${item.extra_training_fee}&#8381;)</td><td>+${item.extraFee}&#8381;</td></tr>`;
+  if (item.guest_extra > 0) html += `<tr><td>Гостевых (платных)</td><td>${item.guest_extra}</td></tr>`;
+  if (item.sickDeduct > 0) html += `<tr><td>Вычет (больничный)</td><td>-${item.sickDeduct}&#8381;</td></tr>`;
+  html += `<tr class="total"><td>ИТОГО</td><td>${item.forecast}&#8381;</td></tr>`;
+  html += '</table>';
+
+  if (item.paid) {
+    html += `<p style="color:var(--accent);font-weight:600;margin-top:8px">&#10003; Оплачено${item.paid_at ? ' ' + new Date(item.paid_at).toLocaleDateString('ru-RU') : ''}</p>`;
+  }
+
+  document.getElementById('billing-detail-content').innerHTML = html;
+  document.getElementById('btn-mark-paid').style.display = item.paid ? 'none' : 'block';
+  state.currentPaymentItem = item;
+  showModal('modal-billing-detail');
 }
 
 function openBillingDetail(billingId) {
@@ -526,9 +577,31 @@ function openBillingDetail(billingId) {
 }
 
 async function markPaid() {
-  if (!state.currentBillingId) return;
+  const item = state.currentPaymentItem;
+  if (!item) return;
   try {
-    await api.markPaid(state.currentBillingId, state.currentBillingAmount);
+    if (item.billing_id) {
+      // Billing record exists — mark paid
+      await api.markPaid(item.billing_id, item.forecast);
+    } else {
+      // Create billing + mark paid via direct RPC
+      await fetch(`${SUPABASE_URL}/rest/v1/rpc/create_and_pay_billing`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+        body: JSON.stringify({
+          p_child_id: item.child_id,
+          p_month: document.getElementById('filter-month').value,
+          p_total_amount: item.forecast,
+          p_base_fee: item.base_monthly_fee,
+          p_extra_fee: item.extraFee || 0,
+          p_total_trainings: item.trainings || 0,
+          p_extra_trainings: item.extra || 0,
+          p_guest_extra_trainings: item.guest_extra || 0,
+          p_included_trainings: item.included_trainings,
+          p_prev_month_sick_deduction: item.sickDeduct || 0
+        })
+      });
+    }
     closeModals(); toast('Оплата отмечена'); await loadBilling();
   } catch (err) { toast(err.message); }
 }

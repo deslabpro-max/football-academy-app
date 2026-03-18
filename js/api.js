@@ -58,4 +58,14 @@ const api = {
   getJournal: (group_id, month) => apiCall('get_journal', { group_id, month }),
   getParentChildren: () => apiCall('get_parent_children'),
   getChildDashboard: (child_id) => apiCall('get_child_dashboard', { child_id }),
+
+  // Direct RPC call for payment overview
+  getPaymentOverview: async (month) => {
+    const res = await fetch(`${SUPABASE_URL}/rest/v1/rpc/get_payment_overview`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` },
+      body: JSON.stringify({ p_month: month || null })
+    });
+    return res.json();
+  },
 };
