@@ -31,15 +31,20 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function init() {
   const errText = document.getElementById('auth-error-text');
+  const loadingP = document.querySelector('#loading p');
   try {
+    if (loadingP) loadingP.textContent = 'Подключение...';
     const roleData = await api.getRole();
+    if (loadingP) loadingP.textContent = 'Роль: ' + (roleData?.role || 'нет');
     state.role = roleData.role;
 
     if (state.role === 'admin' || state.role === 'coach') {
+      if (loadingP) loadingP.textContent = 'Загрузка групп...';
       const groups = await api.getGroups();
       state.groups = groups || [];
     }
 
+    if (loadingP) loadingP.textContent = 'Готово!';
     if (state.role === 'admin') {
       navigateTo('admin-dashboard');
       await loadAdminData();
@@ -227,11 +232,14 @@ async function saveAttendance() {
 
 async function loadAdminData() {
   try {
-    state.groups = await api.getGroups() || [];
+    if (!state.groups.length) state.groups = await api.getGroups() || [];
     renderAdminGroups();
     populateGroupSelects();
     document.getElementById('filter-month').value = currentMonth();
-  } catch (err) { toast(err.message); }
+  } catch (err) {
+    console.error('loadAdminData error:', err);
+    toast(err.message);
+  }
 }
 
 function switchTab(tabName) {
