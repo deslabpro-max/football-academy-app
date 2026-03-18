@@ -155,7 +155,7 @@ async function openAttendance(groupId, groupName, from) {
     const children = await api.getChildren(groupId);
     state.children = children || [];
     state.attendanceMap = {};
-    state.children.forEach(c => { state.attendanceMap[c.id] = true; });
+    state.children.forEach(c => { state.attendanceMap[c.id] = false; });
     state.guestAttendance = [];
     renderAttendanceList(prefix);
   } catch (err) { toast(err.message); }
@@ -228,6 +228,12 @@ async function saveAttendance() {
     }
     toast('Сохранено!');
     if (tg) tg.HapticFeedback?.notificationOccurred('success');
+    // Refresh data in background
+    try {
+      if (state.role === 'admin') {
+        state.groups = await api.getGroups() || [];
+      }
+    } catch(e) {}
   } catch (err) { toast(err.message); }
   finally { btn.disabled = false; btn.textContent = 'Сохранить'; }
 }

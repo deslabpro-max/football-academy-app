@@ -199,8 +199,9 @@ body {
   background: var(--secondary-bg);
   border-radius: var(--radius);
   transition: background 0.2s;
+  color: var(--text);
 }
-.attendance-item.present { background: var(--accent-light); }
+.attendance-item.present { background: var(--accent); color: #fff; }
 .attendance-item .child-name { font-size: 15px; font-weight: 500; flex: 1; }
 
 .toggle { position: relative; width: 52px; height: 30px; flex-shrink: 0; }
