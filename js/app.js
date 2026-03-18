@@ -8,6 +8,8 @@ let state = {
   allChildren: [],
   attendanceMap: {},
   guestAttendance: [],
+  attendanceDirty: false, // unsaved changes
+  savedAttendanceMap: {}, // snapshot of loaded state
 };
 
 // ===== Init =====
@@ -46,16 +48,16 @@ async function init() {
 
     if (loadingP) loadingP.textContent = 'Готово!';
     if (state.role === 'admin') {
-      navigateTo('admin-dashboard');
+      navigateTo('admin-dashboard', true);
       await loadAdminData();
     } else if (state.role === 'coach') {
-      navigateTo('coach-groups');
+      navigateTo('coach-groups', true);
       renderCoachGroups();
     } else if (state.role === 'parent') {
       await initParentDashboard();
     } else {
       if (errText) errText.textContent = 'Неизвестная роль: ' + state.role;
-      navigateTo('unauthorized');
+      navigateTo('unauthorized', true);
     }
   } catch (err) {
     if (err.message.includes('Unauthorized') || err.message.includes('403')) {
@@ -71,7 +73,16 @@ async function init() {
 }
 
 // ===== Navigation =====
-function navigateTo(screenId) {
+function navigateTo(screenId, force) {
+  // Check unsaved attendance
+  if (!force && state.attendanceDirty) {
+    const currentScreen = document.querySelector('.screen.active');
+    if (currentScreen && (currentScreen.id === 'coach-attendance' || currentScreen.id === 'admin-attendance')) {
+      if (tg) tg.HapticFeedback?.notificationOccurred('warning');
+      if (!confirm('Есть несохранённые данные. Выйти без сохранения?')) return;
+      state.attendanceDirty = false;
+    }
+  }
   document.querySelectorAll('.screen').forEach(s => {
     s.classList.remove('active');
     s.style.display = 'none';
@@ -114,6 +125,11 @@ function formatDate(dateStr) {
   return d.toLocaleDateString('ru-RU', { day: '2-digit', month: '2-digit' });
 }
 function changeDate(delta) {
+  if (state.attendanceDirty) {
+    if (tg) tg.HapticFeedback?.notificationOccurred('warning');
+    if (!confirm('Есть несохранённые данные. Перейти без сохранения?')) return;
+  }
+  state.attendanceDirty = false;
   const input = document.querySelector('.screen.active input[type="date"]');
   if (!input) return;
   const d = new Date(input.value);
@@ -203,6 +219,7 @@ function renderAttendanceList(prefix = '') {
 
 function toggleAttendance(childId, present) {
   state.attendanceMap[childId] = present;
+  state.attendanceDirty = true;
   const el = document.getElementById(`att-${childId}`);
   if (el) el.classList.toggle('present', present);
 }
@@ -251,6 +268,7 @@ async function saveAttendance() {
     for (const guest of state.guestAttendance) {
       await api.submitGuestAttendance(guest.child_id, state.currentGroupId, date, guest.guest_reason);
     }
+    state.attendanceDirty = false;
     toast('Сохранено!');
     if (tg) tg.HapticFeedback?.notificationOccurred('success');
     // Refresh data in background
