@@ -31,6 +31,8 @@ body {
 /* ===== Screens ===== */
 .screen { display: none; padding: 16px; }
 .screen.active { display: block; }
+#loading.active { display: flex; }
+#parent-dashboard.active { display: block; }
 
 /* ===== Header ===== */
 .header {

@@ -12,11 +12,12 @@ let state = {
 
 // ===== Init =====
 document.addEventListener('DOMContentLoaded', async () => {
-  if (tg) {
-    tg.ready();
-    tg.expand();
-    tg.enableClosingConfirmation();
-  }
+  try {
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
+  } catch(e) {}
   await init();
 });
 
