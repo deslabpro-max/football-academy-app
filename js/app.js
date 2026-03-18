@@ -22,18 +22,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 async function init() {
   try {
-    // Test auth by fetching groups
-    const groups = await api.getGroups();
-    state.groups = groups;
+    // Get role first
+    const roleData = await api.getRole();
+    state.role = roleData.role;
 
-    // Determine role: if user can get groups, they're authorized
-    // Try admin action to check role
-    try {
-      await apiCall('get_billing', { month: null });
-      state.role = 'admin';
-    } catch {
-      state.role = 'coach';
-    }
+    // Load groups
+    const groups = await api.getGroups();
+    state.groups = groups || [];
 
     if (state.role === 'admin') {
       navigateTo('admin-dashboard');

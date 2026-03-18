@@ -28,8 +28,11 @@ async function apiCall(action, data = {}) {
 
 // ===== API Methods =====
 
-// Groups
+// Auth
 const api = {
+  getRole: () => apiCall('get_role'),
+
+  // Groups
   getGroups: () => apiCall('get_groups'),
   createGroup: (name) => apiCall('create_group', { name }),
   updateGroup: (group_id, name) => apiCall('update_group', { group_id, name }),
