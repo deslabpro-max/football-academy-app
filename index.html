@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Football Academy</title>
+  <title>Territory Football</title>
   <link rel="stylesheet" href="css/style.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
@@ -11,24 +11,27 @@
   <div id="app">
     <!-- Loading -->
     <div id="loading" class="screen active">
+      <img src="https://static.tildacdn.com/tild6165-6339-4236-b739-663963626162/photo.png" alt="Logo">
       <div class="loader"></div>
-      <p>Loading...</p>
+      <p>Territory Football</p>
     </div>
 
     <!-- Unauthorized -->
     <div id="unauthorized" class="screen">
       <div class="empty-state">
-        <div class="empty-icon">🔒</div>
-        <h2>Access denied</h2>
-        <p>Your Telegram account is not authorized. Contact admin.</p>
+        <div class="empty-icon">&#128274;</div>
+        <h2>Доступ запрещён</h2>
+        <p id="auth-error-text">Ваш аккаунт не авторизован. Обратитесь к администратору.</p>
       </div>
     </div>
 
     <!-- COACH: Group Selection -->
     <div id="coach-groups" class="screen">
-      <div class="header">
-        <h1>Select Group</h1>
+      <div class="brand-header">
+        <img src="https://static.tildacdn.com/tild6165-6339-4236-b739-663963626162/photo.png" alt="Logo">
+        <span>TERRITORY FOOTBALL</span>
       </div>
+      <div class="header"><h1>Выберите группу</h1></div>
       <div id="groups-list" class="card-list"></div>
     </div>
 
@@ -36,7 +39,7 @@
     <div id="coach-attendance" class="screen">
       <div class="header">
         <button class="btn-back" onclick="navigateTo('coach-groups')">&#8592;</button>
-        <h1 id="attendance-group-name">Group</h1>
+        <h1 id="attendance-group-name">Группа</h1>
       </div>
       <div class="date-picker">
         <button class="btn-icon" onclick="changeDate(-1)">&#8249;</button>
@@ -46,60 +49,57 @@
       <div id="children-list" class="attendance-list"></div>
       <div id="guest-section" class="section">
         <div class="section-header" onclick="toggleGuests()">
-          <h3>Guests from other groups</h3>
+          <h3>Гости из других групп</h3>
           <span id="guest-toggle" class="toggle-icon">+</span>
         </div>
         <div id="guest-content" class="hidden">
           <div class="search-box">
-            <input type="text" id="guest-search" placeholder="Search child..." oninput="searchGuests()">
+            <input type="text" id="guest-search" placeholder="Поиск по имени..." oninput="searchGuests()">
           </div>
           <div id="guest-results"></div>
         </div>
       </div>
-      <button class="btn-primary btn-save" onclick="saveAttendance()">Save</button>
+      <button class="btn-primary btn-save" onclick="saveAttendance()">Сохранить</button>
     </div>
 
     <!-- ADMIN: Dashboard -->
     <div id="admin-dashboard" class="screen">
-      <div class="header">
-        <h1>Admin Panel</h1>
+      <div class="brand-header">
+        <img src="https://static.tildacdn.com/tild6165-6339-4236-b739-663963626162/photo.png" alt="Logo">
+        <span>TERRITORY FOOTBALL</span>
       </div>
       <div class="tabs">
-        <button class="tab active" onclick="switchTab('groups')">Groups</button>
-        <button class="tab" onclick="switchTab('children')">Children</button>
-        <button class="tab" onclick="switchTab('sick')">Sick Days</button>
-        <button class="tab" onclick="switchTab('billing')">Billing</button>
+        <button class="tab active" onclick="switchTab('groups')">Группы</button>
+        <button class="tab" onclick="switchTab('children')">Дети</button>
+        <button class="tab" onclick="switchTab('sick')">Больничные</button>
+        <button class="tab" onclick="switchTab('billing')">Оплата</button>
       </div>
 
-      <!-- Tab: Groups -->
       <div id="tab-groups" class="tab-content active">
-        <button class="btn-secondary" onclick="showModal('modal-add-group')">+ Add Group</button>
+        <button class="btn-secondary" onclick="showModal('modal-add-group')">+ Добавить группу</button>
         <div id="admin-groups-list" class="card-list"></div>
       </div>
 
-      <!-- Tab: Children -->
       <div id="tab-children" class="tab-content">
-        <button class="btn-secondary" onclick="showModal('modal-add-child')">+ Add Child</button>
+        <button class="btn-secondary" onclick="showModal('modal-add-child')">+ Добавить ребёнка</button>
         <div class="filter-row">
           <select id="filter-group" onchange="loadAdminChildren()">
-            <option value="">All groups</option>
+            <option value="">Все группы</option>
           </select>
         </div>
         <div id="admin-children-list" class="card-list"></div>
       </div>
 
-      <!-- Tab: Sick Days -->
       <div id="tab-sick" class="tab-content">
-        <button class="btn-secondary" onclick="showModal('modal-add-sick')">+ Add Sick Day</button>
+        <button class="btn-secondary" onclick="showModal('modal-add-sick')">+ Добавить больничный</button>
         <div id="admin-sick-list" class="card-list"></div>
       </div>
 
-      <!-- Tab: Billing -->
       <div id="tab-billing" class="tab-content">
         <div class="filter-row">
           <input type="month" id="filter-month" onchange="loadBilling()">
           <select id="filter-billing-group" onchange="loadBilling()">
-            <option value="">All groups</option>
+            <option value="">Все группы</option>
           </select>
         </div>
         <div id="billing-summary" class="summary-bar"></div>
@@ -107,11 +107,11 @@
       </div>
     </div>
 
-    <!-- ADMIN: Attendance (same as coach but from admin) -->
+    <!-- ADMIN: Attendance -->
     <div id="admin-attendance" class="screen">
       <div class="header">
         <button class="btn-back" onclick="navigateTo('admin-dashboard')">&#8592;</button>
-        <h1 id="admin-attendance-group-name">Group</h1>
+        <h1 id="admin-attendance-group-name">Группа</h1>
       </div>
       <div class="date-picker">
         <button class="btn-icon" onclick="changeDate(-1)">&#8249;</button>
@@ -119,84 +119,81 @@
         <button class="btn-icon" onclick="changeDate(1)">&#8250;</button>
       </div>
       <div id="admin-children-att-list" class="attendance-list"></div>
-      <button class="btn-primary btn-save" onclick="saveAttendance()">Save</button>
+      <button class="btn-primary btn-save" onclick="saveAttendance()">Сохранить</button>
     </div>
   </div>
 
   <!-- MODALS -->
   <div id="modal-overlay" class="modal-overlay hidden" onclick="closeModals()"></div>
 
-  <!-- Add Group Modal -->
   <div id="modal-add-group" class="modal hidden">
-    <h3>New Group</h3>
-    <input type="text" id="input-group-name" placeholder="Group name (e.g. 2016 black)">
-    <button class="btn-primary" onclick="createGroup()">Create</button>
+    <h3>Новая группа</h3>
+    <input type="text" id="input-group-name" placeholder="Название (напр. 2016 black)">
+    <button class="btn-primary" onclick="createGroup()">Создать</button>
   </div>
 
-  <!-- Add Coach Modal -->
   <div id="modal-add-coach" class="modal hidden">
-    <h3>Add Coach</h3>
+    <h3>Добавить тренера</h3>
     <p class="modal-subtitle" id="coach-group-label"></p>
-    <input type="number" id="input-coach-tg-id" placeholder="Coach Telegram ID">
-    <button class="btn-primary" onclick="addCoach()">Add</button>
+    <input type="number" id="input-coach-tg-id" placeholder="Telegram ID тренера">
+    <button class="btn-primary" onclick="addCoach()">Добавить</button>
   </div>
 
-  <!-- Add Child Modal -->
   <div id="modal-add-child" class="modal hidden">
-    <h3>New Child</h3>
+    <h3>Новый ученик</h3>
     <select id="input-child-group"></select>
-    <input type="text" id="input-child-name" placeholder="Full name">
-    <input type="number" id="input-child-year" placeholder="Birth year (e.g. 2016)">
-    <input type="number" id="input-parent-tg-id" placeholder="Parent Telegram ID">
-    <input type="text" id="input-parent-name" placeholder="Parent name">
-    <div class="form-divider">Pricing</div>
-    <input type="number" id="input-base-fee" placeholder="Monthly fee (rub)">
-    <input type="number" id="input-included" placeholder="Included trainings" value="8">
-    <input type="number" id="input-extra-fee" placeholder="Extra training fee (rub)">
-    <button class="btn-primary" onclick="addChild()">Add</button>
+    <input type="text" id="input-child-name" placeholder="ФИО ребёнка">
+    <input type="number" id="input-child-year" placeholder="Год рождения (напр. 2016)">
+    <div class="form-divider">Контакт родителя</div>
+    <input type="text" id="input-parent-name" placeholder="Имя родителя">
+    <input type="tel" id="input-parent-phone" placeholder="Телефон родителя">
+    <input type="text" id="input-parent-username" placeholder="@username в Telegram (если есть)">
+    <div class="form-divider">Тариф</div>
+    <input type="number" id="input-base-fee" placeholder="Абонемент в месяц (руб)">
+    <input type="number" id="input-included" placeholder="Тренировок в абонемент" value="8">
+    <input type="number" id="input-extra-fee" placeholder="Стоимость доп. тренировки (руб)">
+    <button class="btn-primary" onclick="addChild()">Добавить</button>
   </div>
 
-  <!-- Edit Child Modal -->
   <div id="modal-edit-child" class="modal hidden">
-    <h3>Edit Child</h3>
+    <h3>Редактировать ученика</h3>
     <input type="hidden" id="edit-child-id">
     <select id="edit-child-group"></select>
-    <input type="text" id="edit-child-name" placeholder="Full name">
-    <input type="number" id="edit-child-year" placeholder="Birth year">
-    <input type="number" id="edit-parent-tg-id" placeholder="Parent Telegram ID">
-    <input type="text" id="edit-parent-name" placeholder="Parent name">
-    <div class="form-divider">Pricing</div>
-    <input type="number" id="edit-base-fee" placeholder="Monthly fee">
-    <input type="number" id="edit-included" placeholder="Included trainings">
-    <input type="number" id="edit-extra-fee" placeholder="Extra training fee">
+    <input type="text" id="edit-child-name" placeholder="ФИО ребёнка">
+    <input type="number" id="edit-child-year" placeholder="Год рождения">
+    <div class="form-divider">Контакт родителя</div>
+    <input type="text" id="edit-parent-name" placeholder="Имя родителя">
+    <input type="tel" id="edit-parent-phone" placeholder="Телефон родителя">
+    <input type="text" id="edit-parent-username" placeholder="@username в Telegram">
+    <div class="form-divider">Тариф</div>
+    <input type="number" id="edit-base-fee" placeholder="Абонемент (руб)">
+    <input type="number" id="edit-included" placeholder="Тренировок в абонемент">
+    <input type="number" id="edit-extra-fee" placeholder="Стоимость доп. тренировки">
     <div class="modal-actions">
-      <button class="btn-primary" onclick="updateChild()">Save</button>
-      <button class="btn-danger" onclick="deactivateChild()">Deactivate</button>
+      <button class="btn-primary" onclick="updateChild()">Сохранить</button>
+      <button class="btn-danger" onclick="deactivateChild()">Деактивировать</button>
     </div>
   </div>
 
-  <!-- Add Sick Day Modal -->
   <div id="modal-add-sick" class="modal hidden">
-    <h3>Add Sick Day</h3>
+    <h3>Добавить больничный</h3>
     <select id="input-sick-child"></select>
-    <label>Start date</label>
+    <label>Дата начала</label>
     <input type="date" id="input-sick-start">
-    <label>End date</label>
+    <label>Дата окончания</label>
     <input type="date" id="input-sick-end">
-    <button class="btn-primary" onclick="addSickDay()">Add</button>
+    <button class="btn-primary" onclick="addSickDay()">Добавить</button>
   </div>
 
-  <!-- Billing Detail Modal -->
   <div id="modal-billing-detail" class="modal hidden">
     <h3 id="billing-detail-name"></h3>
     <div id="billing-detail-content"></div>
     <div class="modal-actions">
-      <button class="btn-primary" id="btn-mark-paid" onclick="markPaid()">Mark Paid</button>
-      <button class="btn-secondary" onclick="closeModals()">Close</button>
+      <button class="btn-primary" id="btn-mark-paid" onclick="markPaid()">Отметить оплату</button>
+      <button class="btn-secondary" onclick="closeModals()">Закрыть</button>
     </div>
   </div>
 
-  <!-- Toast -->
   <div id="toast" class="toast hidden"></div>
 
   <script src="js/api.js"></script>
