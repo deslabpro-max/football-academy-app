@@ -324,7 +324,11 @@ function renderAdminGroups() {
   const list = document.getElementById('admin-groups-list');
   list.innerHTML = state.groups.map(g => {
     const coaches = g.group_coaches || [];
-    return `<div class="card"><div class="card-row"><div><div class="card-title">${escHtml(g.name)}</div><div class="coach-tags">${coaches.map(c => `<span class="coach-tag">Тренер: ${c.coach_telegram_id}</span>`).join('')}</div></div><div style="display:flex;gap:4px"><button class="btn-small green" onclick="openAddCoach('${g.id}','${escHtml(g.name)}')">+Тренер</button><button class="btn-small gray" onclick="openAttendance('${g.id}','${escHtml(g.name)}','admin')">Журнал</button></div></div></div>`;
+    const coachTags = coaches.map(c => {
+      const label = c.name || c.phone || ('ID:' + c.coach_telegram_id);
+      return `<span class="coach-tag">${escHtml(label)} <span style="cursor:pointer;margin-left:4px;color:var(--danger)" onclick="event.stopPropagation();removeCoach('${c.id}','${escHtml(label)}')">&times;</span></span>`;
+    }).join('');
+    return `<div class="card"><div class="card-row"><div><div class="card-title">${escHtml(g.name)}</div><div class="coach-tags">${coachTags}</div></div><div style="display:flex;gap:4px"><button class="btn-small green" onclick="openAddCoach('${g.id}','${escHtml(g.name)}')">+Тренер</button><button class="btn-small gray" onclick="openAttendance('${g.id}','${escHtml(g.name)}','admin')">Журнал</button></div></div></div>`;
   }).join('') || '<div class="empty-state"><div class="empty-icon">&#9917;</div><p>Групп пока нет</p></div>';
 }
 
@@ -341,16 +345,31 @@ async function createGroup() {
 function openAddCoach(groupId, groupName) {
   state.currentGroupId = groupId;
   document.getElementById('coach-group-label').textContent = groupName;
-  document.getElementById('input-coach-tg-id').value = '';
+  document.getElementById('input-coach-name').value = '';
+  document.getElementById('input-coach-phone').value = '';
   showModal('modal-add-coach');
 }
 
 async function addCoach() {
-  const coachId = document.getElementById('input-coach-tg-id').value.trim();
-  if (!coachId) { toast('Введите Telegram ID тренера'); return; }
+  const name = document.getElementById('input-coach-name').value.trim();
+  const phone = document.getElementById('input-coach-phone').value.trim();
+  if (!name && !phone) { toast('Введите имя или телефон'); return; }
   try {
-    await api.addCoach(state.currentGroupId, parseInt(coachId));
+    await apiCall('add_coach_to_group', {
+      group_id: state.currentGroupId,
+      coach_name: name,
+      phone: phone,
+      coach_telegram_id: 0
+    });
     closeModals(); toast('Тренер добавлен'); await loadAdminData();
+  } catch (err) { toast(err.message); }
+}
+
+async function removeCoach(coachId, coachName) {
+  if (!confirm(`Удалить тренера ${coachName}?`)) return;
+  try {
+    await apiCall('remove_coach_from_group', { coach_id: coachId });
+    toast('Тренер удалён'); await loadAdminData();
   } catch (err) { toast(err.message); }
 }
 
