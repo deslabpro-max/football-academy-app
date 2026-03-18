@@ -72,9 +72,15 @@ async function init() {
 
 // ===== Navigation =====
 function navigateTo(screenId) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.screen').forEach(s => {
+    s.classList.remove('active');
+    s.style.display = 'none';
+  });
   const screen = document.getElementById(screenId);
-  if (screen) screen.classList.add('active');
+  if (screen) {
+    screen.classList.add('active');
+    screen.style.display = screenId === 'loading' ? 'flex' : 'block';
+  }
 }
 
 // ===== Toast =====
