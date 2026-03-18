@@ -193,8 +193,8 @@ async function saveAttendance() {
   const btn = document.querySelector('.screen.active .btn-save');
   btn.disabled = true; btn.textContent = 'Сохранение...';
   try {
-    const attendees = state.children.map(c => ({ child_id: c.id, present: !!state.attendanceMap[c.id] }));
-    await api.submitAttendance(state.currentGroupId, date, attendees);
+    const attendees = state.children.map(c => ({ child_id: c.id, full_name: c.full_name, present: !!state.attendanceMap[c.id] }));
+    await api.submitAttendance(state.currentGroupId, state.currentGroupName, date, attendees);
     for (const guest of state.guestAttendance) {
       await api.submitGuestAttendance(guest.child_id, state.currentGroupId, date, guest.guest_reason);
     }

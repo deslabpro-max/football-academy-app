@@ -49,8 +49,8 @@ const api = {
   deactivateChild: (child_id) => apiCall('deactivate_child', { child_id }),
 
   // Attendance
-  submitAttendance: (group_id, training_date, attendees) =>
-    apiCall('submit_attendance', { group_id, training_date, attendees }),
+  submitAttendance: (group_id, group_name, training_date, attendees) =>
+    apiCall('submit_attendance', { group_id, group_name, training_date, attendees }),
   submitGuestAttendance: (child_id, group_id, training_date, guest_reason) =>
     apiCall('submit_guest_attendance', { child_id, group_id, training_date, guest_reason }),
   getAttendanceHistory: (group_id, date_from, date_to) =>
