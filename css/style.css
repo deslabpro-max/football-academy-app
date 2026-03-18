@@ -413,27 +413,35 @@ body {
 
 /* ===== Journal Table ===== */
 .journal-table {
-  width: 100%; border-collapse: collapse; font-size: 13px;
-  min-width: 400px;
+  width: 100%; border-collapse: collapse; font-size: 11px;
 }
 .journal-table th, .journal-table td {
-  border: 1px solid #ddd; padding: 6px 8px; text-align: center; white-space: nowrap;
+  border: 1px solid #e0e0e0; padding: 4px 3px; text-align: center; white-space: nowrap;
 }
 .journal-table th {
-  background: var(--accent); color: #fff; font-weight: 600;
+  background: var(--accent); color: #fff; font-weight: 600; font-size: 10px;
   position: sticky; top: 0; z-index: 1;
 }
 .journal-table th:first-child {
-  text-align: left; position: sticky; left: 0; z-index: 2; min-width: 140px;
-  background: var(--accent-dark);
+  text-align: left; position: sticky; left: 0; z-index: 2;
+  min-width: 90px; max-width: 110px; background: var(--accent-dark);
+  font-size: 10px; padding-left: 6px;
+}
+.journal-table th:last-child {
+  background: var(--accent-dark); min-width: 28px;
 }
 .journal-table td:first-child {
-  text-align: left; font-weight: 500;
+  text-align: left; font-weight: 500; font-size: 11px;
   position: sticky; left: 0; background: var(--bg); z-index: 1;
+  max-width: 110px; overflow: hidden; text-overflow: ellipsis;
+  padding-left: 6px; border-right: 2px solid var(--accent-light);
 }
-.journal-table .mark-yes { color: var(--accent); font-weight: 700; }
-.journal-table .mark-no { color: #ccc; }
-.journal-table .mark-guest { color: #1565C0; font-weight: 600; font-size: 11px; }
+.journal-table td:last-child { font-weight: 700; font-size: 11px; }
+.journal-table .mark-yes { color: var(--accent); font-weight: 700; font-size: 13px; }
+.journal-table .mark-no { color: #ddd; font-size: 10px; }
+.journal-table .mark-guest { color: #1565C0; font-weight: 600; font-size: 9px; }
+.journal-table tr:nth-child(even) td { background: var(--secondary-bg); }
+.journal-table tr:nth-child(even) td:first-child { background: var(--secondary-bg); }
 .journal-summary {
   display: flex; gap: 12px; margin-top: 12px; font-size: 13px; color: var(--hint);
 }
