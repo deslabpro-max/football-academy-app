@@ -71,6 +71,7 @@
       <div class="tabs">
         <button class="tab active" onclick="switchTab('groups')">Группы</button>
         <button class="tab" onclick="switchTab('children')">Дети</button>
+        <button class="tab" onclick="switchTab('journal')">Журнал</button>
         <button class="tab" onclick="switchTab('sick')">Больничные</button>
         <button class="tab" onclick="switchTab('billing')">Оплата</button>
       </div>
@@ -88,6 +89,17 @@
           </select>
         </div>
         <div id="admin-children-list" class="card-list"></div>
+      </div>
+
+      <!-- Tab: Journal -->
+      <div id="tab-journal" class="tab-content">
+        <div class="filter-row">
+          <select id="filter-journal-group" onchange="loadJournal()">
+            <option value="">Выберите группу</option>
+          </select>
+          <input type="month" id="filter-journal-month" onchange="loadJournal()">
+        </div>
+        <div id="journal-table-wrap" style="overflow-x:auto"></div>
       </div>
 
       <div id="tab-sick" class="tab-content">

@@ -1,8 +1,6 @@
 // ===== Direct Supabase API (bypassing n8n) =====
 const SUPABASE_URL = 'https://xckenommhsndvjdwsuzb.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhja2Vub21taHNuZHZqZHdzdXpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzMzODEzMTEsImV4cCI6MjA4ODk1NzMxMX0.jguCl07iAu60EsxCkChAieEx-7MDDrvabofERTkXbg4';
-const JOURNAL_URL = 'https://script.google.com/macros/s/AKfycbxPs5XgG4Bt4R6hdH2vYvGLyCE2pbvLRNiY75SYdq3XSfx1lmIey4-uePtXGNrYDqG7/exec';
-
 const tg = window.Telegram?.WebApp;
 
 async function apiCall(action, data = {}) {
@@ -28,19 +26,6 @@ async function apiCall(action, data = {}) {
     throw new Error(json.error || 'API error');
   }
   return json.data;
-}
-
-async function journalCall(data) {
-  try {
-    await fetch(JOURNAL_URL, {
-      method: 'POST',
-      mode: 'no-cors',
-      headers: { 'Content-Type': 'text/plain' },
-      body: JSON.stringify(data)
-    });
-  } catch (e) {
-    console.warn('Journal sync error:', e);
-  }
 }
 
 const api = {
@@ -69,4 +54,5 @@ const api = {
   deleteSickDay: (sick_day_id) => apiCall('delete_sick_day', { sick_day_id }),
   getBilling: (month, group_id) => apiCall('get_billing', { month, group_id }),
   markPaid: (billing_id, paid_amount) => apiCall('mark_paid', { billing_id, paid_amount }),
+  getJournal: (group_id, month) => apiCall('get_journal', { group_id, month }),
 };

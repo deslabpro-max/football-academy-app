@@ -198,13 +198,6 @@ async function saveAttendance() {
     for (const guest of state.guestAttendance) {
       await api.submitGuestAttendance(guest.child_id, state.currentGroupId, date, guest.guest_reason);
     }
-    // Sync to Google Sheets journal
-    journalCall({
-      action: 'submit_attendance',
-      group_name: state.currentGroupName,
-      training_date: date,
-      attendees: attendees
-    });
     toast('Сохранено!');
     if (tg) tg.HapticFeedback?.notificationOccurred('success');
   } catch (err) { toast(err.message); }
@@ -230,13 +223,14 @@ function switchTab(tabName) {
   event.target.classList.add('active');
   document.getElementById(`tab-${tabName}`).classList.add('active');
   if (tabName === 'children') loadAdminChildren();
+  if (tabName === 'journal') initJournal();
   if (tabName === 'sick') loadSickDays();
   if (tabName === 'billing') loadBilling();
   if (tabName === 'groups') renderAdminGroups();
 }
 
 function populateGroupSelects() {
-  ['filter-group', 'filter-billing-group', 'input-child-group', 'edit-child-group'].forEach(id => {
+  ['filter-group', 'filter-billing-group', 'filter-journal-group', 'input-child-group', 'edit-child-group'].forEach(id => {
     const el = document.getElementById(id);
     if (!el) return;
     const isFilter = id.startsWith('filter');
@@ -457,6 +451,92 @@ async function markPaid() {
     await api.markPaid(state.currentBillingId, state.currentBillingAmount);
     closeModals(); toast('Оплата отмечена'); await loadBilling();
   } catch (err) { toast(err.message); }
+}
+
+// =======================================================
+//                  JOURNAL
+// =======================================================
+
+function initJournal() {
+  const sel = document.getElementById('filter-journal-group');
+  sel.innerHTML = '<option value="">Выберите группу</option>' +
+    state.groups.map(g => `<option value="${g.id}">${escHtml(g.name)}</option>`).join('');
+  document.getElementById('filter-journal-month').value = currentMonth();
+}
+
+async function loadJournal() {
+  const groupId = document.getElementById('filter-journal-group').value;
+  const month = document.getElementById('filter-journal-month').value;
+  const wrap = document.getElementById('journal-table-wrap');
+  if (!groupId) { wrap.innerHTML = '<p style="color:var(--hint);text-align:center;padding:20px">Выберите группу</p>'; return; }
+
+  try {
+    const data = await api.getJournal(groupId, month);
+    renderJournal(data, wrap);
+  } catch (err) { toast(err.message); }
+}
+
+function renderJournal(data, wrap) {
+  const children = data.children || [];
+  const dates = (data.dates || []).map(d => String(d));
+  const records = data.records || [];
+
+  if (!children.length) {
+    wrap.innerHTML = '<p style="color:var(--hint);text-align:center;padding:20px">В группе нет учеников</p>';
+    return;
+  }
+  if (!dates.length) {
+    wrap.innerHTML = '<p style="color:var(--hint);text-align:center;padding:20px">Нет данных за выбранный период</p>';
+    return;
+  }
+
+  // Build lookup: child_id+date -> record
+  const lookup = {};
+  for (const r of records) {
+    lookup[r.child_id + '|' + r.date] = r;
+  }
+
+  // Format dates as dd.mm
+  const fmtDates = dates.map(d => {
+    const parts = d.split('-');
+    return parts[2] + '.' + parts[1];
+  });
+
+  let html = '<table class="journal-table"><thead><tr><th>ФИО</th>';
+  fmtDates.forEach(d => { html += `<th>${d}</th>`; });
+  html += '<th>Всего</th></tr></thead><tbody>';
+
+  for (const child of children) {
+    html += `<tr><td>${escHtml(child.full_name)}</td>`;
+    let totalPresent = 0;
+    for (const date of dates) {
+      const r = lookup[child.id + '|' + date];
+      if (r) {
+        if (r.present) {
+          totalPresent++;
+          if (r.is_guest) {
+            const label = r.guest_reason === 'makeup' ? 'отр' : 'доп';
+            html += `<td class="mark-guest">${label}</td>`;
+          } else {
+            html += '<td class="mark-yes">&#10003;</td>';
+          }
+        } else {
+          html += '<td class="mark-no">&mdash;</td>';
+        }
+      } else {
+        html += '<td></td>';
+      }
+    }
+    html += `<td style="font-weight:700">${totalPresent}</td></tr>`;
+  }
+
+  html += '</tbody></table>';
+
+  // Summary
+  const totalDays = dates.length;
+  html += `<div class="journal-summary">Тренировок: <span>${totalDays}</span></div>`;
+
+  wrap.innerHTML = html;
 }
 
 // ===== Utilities =====

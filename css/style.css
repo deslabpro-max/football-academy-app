@@ -360,3 +360,31 @@ body {
 
 /* ===== Phone / Contact display ===== */
 .contact-info { font-size: 12px; color: var(--hint); margin-top: 2px; }
+
+/* ===== Journal Table ===== */
+.journal-table {
+  width: 100%; border-collapse: collapse; font-size: 13px;
+  min-width: 400px;
+}
+.journal-table th, .journal-table td {
+  border: 1px solid #ddd; padding: 6px 8px; text-align: center; white-space: nowrap;
+}
+.journal-table th {
+  background: var(--accent); color: #fff; font-weight: 600;
+  position: sticky; top: 0; z-index: 1;
+}
+.journal-table th:first-child {
+  text-align: left; position: sticky; left: 0; z-index: 2; min-width: 140px;
+  background: var(--accent-dark);
+}
+.journal-table td:first-child {
+  text-align: left; font-weight: 500;
+  position: sticky; left: 0; background: var(--bg); z-index: 1;
+}
+.journal-table .mark-yes { color: var(--accent); font-weight: 700; }
+.journal-table .mark-no { color: #ccc; }
+.journal-table .mark-guest { color: #1565C0; font-weight: 600; font-size: 11px; }
+.journal-summary {
+  display: flex; gap: 12px; margin-top: 12px; font-size: 13px; color: var(--hint);
+}
+.journal-summary span { font-weight: 600; color: var(--text); }
