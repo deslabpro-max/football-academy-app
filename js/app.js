@@ -325,7 +325,7 @@ function renderAdminGroups() {
   list.innerHTML = state.groups.map(g => {
     const coaches = g.group_coaches || [];
     const coachTags = coaches.map(c => {
-      const label = c.name || c.phone || ('ID:' + c.coach_telegram_id);
+      const label = c.name || (c.username ? '@' + c.username : '') || c.phone || ('ID:' + c.coach_telegram_id);
       return `<span class="coach-tag">${escHtml(label)} <span style="cursor:pointer;margin-left:4px;color:var(--danger)" onclick="event.stopPropagation();removeCoach('${c.id}','${escHtml(label)}')">&times;</span></span>`;
     }).join('');
     return `<div class="card"><div class="card-row"><div><div class="card-title">${escHtml(g.name)}</div><div class="coach-tags">${coachTags}</div></div><div style="display:flex;gap:4px"><button class="btn-small green" onclick="openAddCoach('${g.id}','${escHtml(g.name)}')">+Тренер</button><button class="btn-small gray" onclick="openAttendance('${g.id}','${escHtml(g.name)}','admin')">Журнал</button></div></div></div>`;
@@ -347,19 +347,21 @@ function openAddCoach(groupId, groupName) {
   document.getElementById('coach-group-label').textContent = groupName;
   document.getElementById('input-coach-name').value = '';
   document.getElementById('input-coach-phone').value = '';
+  document.getElementById('input-coach-username').value = '';
   showModal('modal-add-coach');
 }
 
 async function addCoach() {
   const name = document.getElementById('input-coach-name').value.trim();
   const phone = document.getElementById('input-coach-phone').value.trim();
-  if (!name && !phone) { toast('Введите имя или телефон'); return; }
+  const username = document.getElementById('input-coach-username').value.trim().replace('@', '');
+  if (!username) { toast('Укажите @username тренера в Telegram'); return; }
   try {
     await apiCall('add_coach_to_group', {
       group_id: state.currentGroupId,
       coach_name: name,
       phone: phone,
-      coach_telegram_id: 0
+      coach_username: username
     });
     closeModals(); toast('Тренер добавлен'); await loadAdminData();
   } catch (err) { toast(err.message); }
