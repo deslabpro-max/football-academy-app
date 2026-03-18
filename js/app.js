@@ -119,13 +119,30 @@ function changeDate(delta) {
   const d = new Date(input.value);
   d.setDate(d.getDate() + delta);
   input.value = d.toISOString().split('T')[0];
-  // Reset toggles when date changes
-  if (state.children.length) {
-    state.children.forEach(c => { state.attendanceMap[c.id] = false; });
-    state.guestAttendance = [];
-    const prefix = document.getElementById('admin-attendance')?.classList.contains('active') ? 'admin-' : '';
-    renderAttendanceList(prefix);
-  }
+  loadAttendanceForDate();
+}
+
+async function loadAttendanceForDate() {
+  if (!state.children.length || !state.currentGroupId) return;
+  const input = document.querySelector('.screen.active input[type="date"]');
+  const date = input?.value;
+  if (!date) return;
+  // Reset all to absent
+  state.children.forEach(c => { state.attendanceMap[c.id] = false; });
+  state.guestAttendance = [];
+  // Load saved attendance for this date
+  try {
+    const history = await api.getAttendanceHistory(state.currentGroupId, date, date);
+    if (history && history.length) {
+      history.forEach(r => {
+        if (!r.is_guest && state.attendanceMap.hasOwnProperty(r.child_id)) {
+          state.attendanceMap[r.child_id] = r.present;
+        }
+      });
+    }
+  } catch(e) {}
+  const prefix = document.getElementById('admin-attendance')?.classList.contains('active') ? 'admin-' : '';
+  renderAttendanceList(prefix);
 }
 function currentMonth() {
   const now = new Date();
@@ -164,7 +181,8 @@ async function openAttendance(groupId, groupName, from) {
     state.attendanceMap = {};
     state.children.forEach(c => { state.attendanceMap[c.id] = false; });
     state.guestAttendance = [];
-    renderAttendanceList(prefix);
+    // Load saved attendance for selected date
+    await loadAttendanceForDate();
   } catch (err) { toast(err.message); }
 }
 
@@ -648,62 +666,74 @@ function renderJournal(data, wrap) {
 
   if (!children.length) {
     wrap.innerHTML = '<p style="color:var(--hint);text-align:center;padding:20px">В группе нет учеников</p>';
+    document.getElementById('journal-stats').innerHTML = '';
     return;
   }
   if (!dates.length) {
     wrap.innerHTML = '<p style="color:var(--hint);text-align:center;padding:20px">Нет данных за выбранный период</p>';
+    document.getElementById('journal-stats').innerHTML = '';
     return;
   }
 
-  // Build lookup: child_id+date -> record
   const lookup = {};
+  for (const r of records) lookup[r.child_id + '|' + r.date] = r;
+
+  const fmtDates = dates.map(d => { const p = d.split('-'); return p[2] + '.' + p[1]; });
+
+  // Calculate totals per child
+  const totals = {};
+  children.forEach(c => { totals[c.id] = 0; });
   for (const r of records) {
-    lookup[r.child_id + '|' + r.date] = r;
+    if (r.present && totals.hasOwnProperty(r.child_id)) totals[r.child_id]++;
   }
 
-  // Format dates as dd.mm
-  const fmtDates = dates.map(d => {
-    const parts = d.split('-');
-    return parts[2] + '.' + parts[1];
-  });
-
-  let html = '<table class="journal-table"><thead><tr><th>ФИО</th>';
-  fmtDates.forEach(d => { html += `<th>${d}</th>`; });
-  html += '<th>Всего</th></tr></thead><tbody>';
-
+  // Fixed columns: ФИО + Итого
+  let fixedHtml = '<table><thead><tr><th class="col-name">ФИО</th><th class="col-num">N</th></tr></thead><tbody>';
   for (const child of children) {
-    html += `<tr><td>${escHtml(child.full_name)}</td>`;
-    let totalPresent = 0;
+    fixedHtml += `<tr><td class="col-name">${escHtml(child.full_name)}</td><td class="col-num">${totals[child.id]}</td></tr>`;
+  }
+  fixedHtml += '</tbody></table>';
+
+  // Scrollable columns: dates
+  let scrollHtml = '<table><thead><tr>';
+  fmtDates.forEach(d => { scrollHtml += `<th>${d}</th>`; });
+  scrollHtml += '</tr></thead><tbody>';
+  for (const child of children) {
+    scrollHtml += '<tr>';
     for (const date of dates) {
       const r = lookup[child.id + '|' + date];
       if (r) {
         if (r.present) {
-          totalPresent++;
           if (r.is_guest) {
-            const label = r.guest_reason === 'makeup' ? 'отр' : 'доп';
-            html += `<td class="mark-guest">${label}</td>`;
+            scrollHtml += `<td class="mark-guest">${r.guest_reason === 'makeup' ? 'отр' : 'доп'}</td>`;
           } else {
-            html += '<td class="mark-yes">&#10003;</td>';
+            scrollHtml += '<td class="mark-yes">&#10003;</td>';
           }
         } else {
-          html += '<td class="mark-no">&mdash;</td>';
+          scrollHtml += '<td class="mark-no">&mdash;</td>';
         }
       } else {
-        html += '<td></td>';
+        scrollHtml += '<td></td>';
       }
     }
-    html += `<td style="font-weight:700">${totalPresent}</td></tr>`;
+    scrollHtml += '</tr>';
   }
+  scrollHtml += '</tbody></table>';
 
-  html += '</tbody></table>';
-  wrap.innerHTML = html;
+  wrap.innerHTML = `<div class="journal-container"><div class="journal-fixed">${fixedHtml}</div><div class="journal-scroll" id="journal-scroll-area">${scrollHtml}</div></div>`;
 
-  // Scroll to last column (latest date)
-  setTimeout(() => { wrap.scrollLeft = wrap.scrollWidth; }, 100);
+  // Sync scroll between fixed and scrollable
+  const fixedDiv = wrap.querySelector('.journal-fixed');
+  const scrollDiv = wrap.querySelector('.journal-scroll');
+  scrollDiv.addEventListener('scroll', () => { fixedDiv.scrollTop = scrollDiv.scrollTop; });
+  fixedDiv.addEventListener('scroll', () => { scrollDiv.scrollTop = fixedDiv.scrollTop; });
 
-  // Stats above table
+  // Scroll to last date
+  setTimeout(() => { scrollDiv.scrollLeft = scrollDiv.scrollWidth; }, 100);
+
+  // Stats
   const totalDays = dates.length;
-  const lastDate = dates.length ? formatDate(dates[dates.length - 1]) : '—';
+  const lastDate = formatDate(dates[dates.length - 1]);
   document.getElementById('journal-stats').innerHTML =
     `Тренировок: <b>${totalDays}</b> | Последняя: <b>${lastDate}</b>`;
 }
