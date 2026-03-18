@@ -119,6 +119,13 @@ function changeDate(delta) {
   const d = new Date(input.value);
   d.setDate(d.getDate() + delta);
   input.value = d.toISOString().split('T')[0];
+  // Reset toggles when date changes
+  if (state.children.length) {
+    state.children.forEach(c => { state.attendanceMap[c.id] = false; });
+    state.guestAttendance = [];
+    const prefix = document.getElementById('admin-attendance')?.classList.contains('active') ? 'admin-' : '';
+    renderAttendanceList(prefix);
+  }
 }
 function currentMonth() {
   const now = new Date();
@@ -689,12 +696,16 @@ function renderJournal(data, wrap) {
   }
 
   html += '</tbody></table>';
-
-  // Summary
-  const totalDays = dates.length;
-  html += `<div class="journal-summary">Тренировок: <span>${totalDays}</span></div>`;
-
   wrap.innerHTML = html;
+
+  // Scroll to last column (latest date)
+  setTimeout(() => { wrap.scrollLeft = wrap.scrollWidth; }, 100);
+
+  // Stats above table
+  const totalDays = dates.length;
+  const lastDate = dates.length ? formatDate(dates[dates.length - 1]) : '—';
+  document.getElementById('journal-stats').innerHTML =
+    `Тренировок: <b>${totalDays}</b> | Последняя: <b>${lastDate}</b>`;
 }
 
 // ===== Utilities =====

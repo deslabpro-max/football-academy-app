@@ -202,6 +202,8 @@ body {
   color: var(--text);
 }
 .attendance-item.present { background: var(--accent); color: #fff; }
+.attendance-item.present .toggle input:checked + .slider { background: #fff; }
+.attendance-item.present .toggle input:checked + .slider:before { background: var(--accent); }
 .attendance-item .child-name { font-size: 15px; font-weight: 500; flex: 1; }
 
 .toggle { position: relative; width: 52px; height: 30px; flex-shrink: 0; }
@@ -443,6 +445,11 @@ body {
 .journal-table .mark-guest { color: #1565C0; font-weight: 600; font-size: 9px; }
 .journal-table tr:nth-child(even) td { background: var(--secondary-bg); }
 .journal-table tr:nth-child(even) td:first-child { background: var(--secondary-bg); }
+.journal-scroll-wrap {
+  overflow-x: auto; overflow-y: auto;
+  max-height: 60vh;
+  border: 1px solid #e0e0e0; border-radius: var(--radius);
+}
 .journal-summary {
   display: flex; gap: 12px; margin-top: 12px; font-size: 13px; color: var(--hint);
 }
